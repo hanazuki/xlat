@@ -13,9 +13,10 @@ module Xlat
 
       def initialize(pref64n_string)
         @pref64n = IPAddr.new(pref64n_string, Socket::AF_INET6)
-        raise ArgumentError, "#{self.class.name} only supports Pref64n::/96" unless @pref64n.prefix == 96
+        raise ArgumentError, "#{self.class.name} only supports Pref64::/96" unless @pref64n.prefix == 96
         @pref64n_bytes = @pref64n.hton.b
         @pref64n_prefix = @pref64n_bytes[0,12]
+        raise ArgumentError, "Bits 64-71 in Pref64::/96 must be set to zero" unless @pref64n_bytes[8].ord == 0
 
         @cs_delta = @pref64n_prefix.unpack("n*").sum
         @cs_delta = 0 if @cs_delta % 0xffff == 0 # checksum neutrality

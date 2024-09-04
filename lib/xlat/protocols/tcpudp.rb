@@ -29,30 +29,52 @@ require 'xlat/protocols/icmp'
 module Xlat
   module Protocols
     class Tcpudp
-      attr_reader :src_port, :dest_port
       include Xlat::Common
 
-      def initialize(packet)
-        bytes = packet.l4_bytes
-        l4_start = packet.l4_bytes_offset
+      attr_accessor :bytes, :offset
+      attr_reader :src_port, :dest_port
 
+      def initialize(packet, icmp_payload:)
         @packet = packet
-        @src_port, @dest_port = bytes.get_values([:U16, :U16], l4_start)
+        @icmp_payload = icmp_payload
+      end
+
+      def reset(bytes, offset)
+        @bytes = bytes
+        @offset = offset
+        @src_port = nil
+        @dest_port = nil
+        @orig_checksum = nil
+        self
+      end
+
+      def _parse
+        packet = @packet
+        bytes = packet.l4_bytes
+        offset = packet.l4_bytes_offset
+
+        @src_port, @dest_port = bytes.get_values([:U16, :U16], offset)
         @orig_checksum = @src_port + @dest_port
+
+        self
+      end
+
+      def parse(...)
+        reset(...)._parse
       end
 
       def src_port=(n)
         @src_port = n
-        @packet.l4_bytes.set_value(:U16, @packet.l4_bytes_offset, n)
+        @bytes.set_value(:U16, @offset, n)
       end
 
       def dest_port=(n)
         @dest_port = n
-        @packet.l4_bytes.set_value(:U16, @packet.l4_bytes_offset + 2, n)
+        @bytes.set_value(:U16, @offset + 2, n)
       end
 
       def tuple
-        @packet.l4_bytes.slice(@packet.l4_bytes_offset, 4)
+        @bytes.slice(@offset, 4)
       end
 
       def _adjust_checksum(checksum, cs_delta)

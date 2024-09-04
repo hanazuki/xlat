@@ -31,7 +31,7 @@ module Xlat
       PROTOCOL_ID = 17
       CHECKSUM_OFFSET = 6
 
-      def _parse
+      def parse
         packet = @packet
         bytes = packet.l4_bytes
         offset = packet.l4_bytes_offset

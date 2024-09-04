@@ -31,46 +31,13 @@ module Xlat
     class Tcpudp
       include Xlat::Common
 
-      attr_accessor :bytes, :offset
-      attr_reader :src_port, :dest_port
-
       def initialize(packet, icmp_payload:)
         @packet = packet
         @icmp_payload = icmp_payload
       end
 
-      def reset(bytes, offset)
-        @bytes = bytes
-        @offset = offset
-        @src_port = nil
-        @dest_port = nil
-        @orig_checksum = nil
+      def parse
         self
-      end
-
-      def _parse
-        packet = @packet
-        bytes = packet.l4_bytes
-        offset = packet.l4_bytes_offset
-
-        @src_port, @dest_port = bytes.get_values([:U16, :U16], offset)
-        @orig_checksum = @src_port + @dest_port
-
-        self
-      end
-
-      def parse(...)
-        reset(...)._parse
-      end
-
-      def src_port=(n)
-        @src_port = n
-        @bytes.set_value(:U16, @offset, n)
-      end
-
-      def dest_port=(n)
-        @dest_port = n
-        @bytes.set_value(:U16, @offset + 2, n)
       end
 
       def tuple
@@ -78,7 +45,7 @@ module Xlat
       end
 
       def _adjust_checksum(checksum, cs_delta)
-        Ip.checksum_adjust(checksum, cs_delta + @src_port + @dest_port - @orig_checksum)
+        Ip.checksum_adjust(checksum, cs_delta)
       end
     end
   end

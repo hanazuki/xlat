@@ -44,30 +44,24 @@ module Xlat
       end
 
       def self.parse(bytes)
-        new.parse(bytes: bytes)
+        new.parse(bytes:)
       end
 
-      def reset(bytes:, bytes_offset: 0, l4_bytes: nil, l4_bytes_offset: nil)
+      def parse(bytes:, bytes_offset: 0, l4_bytes: nil, l4_bytes_offset: nil)
         @bytes = bytes
         @bytes_offset = bytes_offset
         @proto = nil
         @version = nil
         @l4_start = nil
         @l4 = nil
-        @l4_bytes = nil
-        @l4_bytes_offset = nil
+        @l4_bytes = l4_bytes
+        @l4_bytes_offset = l4_bytes_offset
         @cs_delta = 0
-        self
-      end
-
-      def _parse
-        bytes = @bytes
-        offset = @bytes_offset
 
         # mimimum size for IPv4
-        return nil if bytes.size < offset + 20
+        return nil if bytes.size < bytes_offset + 20
 
-        case bytes.get_value(:U8, offset) >> 4
+        case bytes.get_value(:U8, bytes_offset) >> 4
         when 4
           @version = Ipv4
         when 6
@@ -80,22 +74,20 @@ module Xlat
 
         unless @l4_bytes
           @l4_bytes = @bytes
-          @l4_bytes_offset = offset + @l4_start
+          @l4_bytes_offset = bytes_offset + @l4_start
         end
 
         case @proto
         when Protocols::Udp::PROTOCOL_ID
-          @l4 = @_udp.parse(@l4_bytes, @l4_offset)
+          @l4 = @_udp.parse
         when Protocols::Tcp::PROTOCOL_ID
-          @l4 = @_tcp.parse(@l4_bytes, @l4_offset)
+          @l4 = @_tcp.parse
         when @version.icmp_protocol_id
           @l4 = Protocols::Icmp.parse(self)
         end
 
         self
       end
-
-      def parse(...) = reset(...)._parse
 
       # Convert this packet into different IP version using the supplied buffer as header.
       #

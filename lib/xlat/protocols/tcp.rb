@@ -43,13 +43,7 @@ module Xlat
       FLAG_ECE = 0x40
       FLAG_CWR = 0x80
 
-      attr_reader :flags
-
-      def reset(...)
-        super
-      end
-
-      def _parse
+      def parse
         packet = @packet
         bytes = packet.l4_bytes
         offset = packet.l4_bytes_offset

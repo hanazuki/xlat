@@ -27,18 +27,21 @@ namespace {
 
     ssize_t n;
     do {
-      if(auto const result =
-              rcx::gvl::without_gvl([fd, &iov, count] { return ::readv(fd, iov.data(), count); },
-                  rcx::gvl::ReleaseFlags::IntrFail)) {
+      if(auto const result = rcx::gvl::without_gvl(
+             [fd, &iov, count] {
+               ssize_t result = ::readv(fd, iov.data(), count);
+               return result < 0 ? -errno : result;
+             },
+             rcx::gvl::ReleaseFlags::IntrFail)) {
         n = *result;
       } else {
         rcx::gvl::check_interrupts();
         continue;
       }
-    } while(n < 0 && errno == EINTR);
+    } while(n == -EINTR);
 
     if(n < 0) {
-      throw rcx::Exception::new_from_errno("readv");
+      throw rcx::Exception::new_from_errno("readv", -n);
     }
 
     return n;
@@ -63,18 +66,21 @@ namespace {
 
     ssize_t n;
     do {
-      if(auto const result =
-              rcx::gvl::without_gvl([fd, &iov, count] { return ::writev(fd, iov.data(), count); },
-                  rcx::gvl::ReleaseFlags::IntrFail)) {
+      if(auto const result = rcx::gvl::without_gvl(
+             [fd, &iov, count] {
+               ssize_t result = ::writev(fd, iov.data(), count);
+               return result < 0 ? -errno : result;
+             },
+             rcx::gvl::ReleaseFlags::IntrFail)) {
         n = *result;
       } else {
         rcx::gvl::check_interrupts();
         continue;
       }
-    } while(n < 0 && errno == EINTR);
+    } while(n == -EINTR);
 
     if(n < 0) {
-      throw rcx::Exception::new_from_errno("writev");
+      throw rcx::Exception::new_from_errno("writev", -n);
     }
 
     return n;

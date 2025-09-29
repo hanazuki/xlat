@@ -157,33 +157,33 @@ module Xlat
         @cs_delta = 0
       end
 
-      def self.checksum(bytes, from = nil, len = nil)
-        from = 0 if from.nil?
-        len = bytes.size - from if len.nil?
-        to = from + len - 1
-
-        sum = Common.sum16be(bytes.slice(from, len))
-        sum += bytes.get_value(:U8, to) * 256 if len.odd?
+      def self.checksum(bytes, from = 0, len = bytes.size - from)
+        sum = Common.sum16be(bytes, from, len / 2)
+        sum += bytes.get_value(:U8, from + len - 1) * 256 if len.odd?
         sum = (sum & 0xffff) + (sum >> 16) while sum > 65535
         ~sum & 0xffff
       end
 
       def self.checksum_list(buffers)
         sum = 0
-        offset = 0
+        align = 0
+
         buffers.each do |buf|
-          if offset.odd?
-            sum += buf.get_value(:U8, 0)
-            buf = buf.slice(1)
-            offset += 1
-          end
-          sum += Common.sum16be(buf)
+          off = 0
           len = buf.size
+          if align.odd?
+            sum += buf.get_value(:U8, 0)
+            off = 1
+            len -= 1
+            align += 1
+          end
+          sum += Common.sum16be(buf, off, len / 2)
           if len.odd?
             sum += buf.get_value(:U8, len - 1) << 8
           end
-          offset += len
+          align += len
         end
+
         sum = (sum & 0xffff) + (sum >> 16) while sum > 65535
         ~sum & 0xffff
       end
